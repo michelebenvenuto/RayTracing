@@ -3,6 +3,37 @@ import random
 from math import sqrt
 from collections import namedtuple
 
+class color(object):
+    def __init__(self,r,g,b):
+        self.r = r 
+        self.g = g
+        self.b = b 
+    
+    def __add__(self, other_color):
+        r = self.r + other_color.r
+        g = self.g + other_color.g
+        b = self.b + other_color.b
+
+        return color(r, g, b)
+
+    def __mul__(self, scalar):
+        r = self.r * scalar
+        g = self.g * scalar
+        b = self.b * scalar
+        
+        return color(r,g,b)
+    
+    __rmul__ = __mul__
+    
+    def __repr__(self):
+        return "color(%s, %s,%s)"%(self.r, self.g, self.b)
+    
+    def toBytes(self):
+        self.r = int(max(min(self.r, 255), 0))
+        self.g = int(max(min(self.g, 255), 0))
+        self.b = int(max(min(self.b, 255), 0))
+        return bytes([self.b, self.g, self.r])
+
 def char(myChar):
 		return struct.pack('=c', myChar.encode('ascii'))
 
@@ -14,9 +45,6 @@ def word(myChar):
 	
 def dword(myChar):
 	return struct.pack('=l', myChar)
-
-def getcolor(r,g,b):
-	return bytes([b,g,r])
 
 def midPoint(start, end):
     return round((start+end)/2)
@@ -45,10 +73,10 @@ def JupiterShader(x, y,filler):
             radius_counter += 1
             intensity-=0.005
             
-    lightBrown = getcolor(round(210* intensity), round(105* intensity), round(30 *intensity))
-    sandybrown = getcolor(round(244* intensity), round(164* intensity), round(96 *intensity))
-    darkBrown = getcolor(round(139* intensity), round(69* intensity), round(19 *intensity))
-    navajowhite = getcolor(round(255* intensity), round(222* intensity), round(173 *intensity))
+    lightBrown = color(round(210* intensity), round(105* intensity), round(30 *intensity))
+    sandybrown = color(round(244* intensity), round(164* intensity), round(96 *intensity))
+    darkBrown = color(round(139* intensity), round(69* intensity), round(19 *intensity))
+    navajowhite = color(round(255* intensity), round(222* intensity), round(173 *intensity))
 
     
     offset = random.randint(0,5)
@@ -76,6 +104,10 @@ def bbox(*vertices):
     return xmin, xmax, ymin, ymax
 
 #MATH STUFF
+def reflect(I, N):
+  Lm = mul(I, -1)
+  n = mul(N, 2 * dot(Lm, N))
+  return norm(sub(Lm, n))
 
 def sum(v0, v1):
     """

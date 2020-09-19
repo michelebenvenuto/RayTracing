@@ -1,9 +1,10 @@
 from usefullFunctions import *
 from math import sin, cos, tan, pi
 from sphere import Sphere
+from light import Light
 
-White = getcolor(255,255,255)
-Black = getcolor(0,0,0)
+White = color(255,255,255)
+Black = color(0,0,0)
 
 class RayTracer(object):
     def __init__(self, width, height, fileName = 'test.bmp', clearColor = Black):
@@ -15,8 +16,8 @@ class RayTracer(object):
         self.scene = []
         self.viewport = None
         self.drawColor = White
-        self.active_texture = None
-        self.active_vertex_array = []
+        self.backgroundColor = Black
+        self.light = Light(V3(0,0,0), 1)
         self.glCreateWindow(self.width,self.height)
         
     def glInit(self):
@@ -42,7 +43,7 @@ class RayTracer(object):
         ]
     
     def glClearColor(self, r,g,b):
-        self.clearColor = getcolor(r,g,b)
+        self.clearColor = color(r,g,b)
 
     def glVertex(self,x,y):
         XCoordinate = round((x+1)*(self.viewport.width/2)+self.viewport.x)
@@ -50,7 +51,7 @@ class RayTracer(object):
         self.point(XCoordinate,YCoordinate)
 
     def glColor(self, r,g,b):
-        self.drawColor = getcolor(r,g,b)
+        self.drawColor = color(r,g,b)
 
     def glFinish(self):
         f = open(self.fileName, 'bw')
@@ -75,7 +76,7 @@ class RayTracer(object):
 
         for y in range(self.height):
             for x in range(self.width):
-                f.write(self.pixels[y][x])
+                f.write(self.pixels[y][x].toBytes())
 
         f.close()
 
@@ -86,25 +87,59 @@ class RayTracer(object):
             pass
     
     def collisionDetected(self, origin, direction):
+        zbuffer = float('inf')
+
+        material = None
+        intersect = None
         for obj in self.scene:
-            if obj.collisionDetected(origin, direction):
-                return obj.material.diffuse
-        return False
+            hit = obj.collisionDetected(origin,direction)
+        
+            if hit and hit.distance < zbuffer:
+                zbuffer = hit.distance
+                material = obj.material
+                intersect = hit
+        return material, intersect
 
 
     def cast_ray(self, origin, direction):
-        material_detected = self.collisionDetected(origin,direction)
-        if material_detected:
-            return material_detected
-        else:
-            return Black
+        material_detected, impact = self.collisionDetected(origin,direction)
+        
+        #nothing got hit 
+        if material_detected is None:
+            return self.backgroundColor
+        #light stuff
+
+        light_direction = norm(sub(self.light.position, impact.point))
+        light_distance = length(sub(self.light.position, impact.point))
+
+        #shadow stuff
+        offset_normal = mul(impact.normal, 1.1)
+        shadow_origin = sub(impact.point, offset_normal) if dot(light_direction, impact.normal) < 0 else sum(impact.point, offset_normal)
+        shadow_material, shadow_intersect = self.collisionDetected(shadow_origin, light_direction)
+        shadow_intensity = 0
+
+        if shadow_material and length(sub(shadow_intersect.point, shadow_origin)) < light_distance :
+            shadow_intensity = 0.9
+
+        intensity =self.light.intensity * max(0,dot(light_direction, impact.normal)) * (1- shadow_intensity)
+
+        reflection = reflect(light_direction, impact.normal)
+        specular_intensity = self.light.intensity * (
+            max(0, -dot(reflection,direction))**material_detected.specular
+        )
+
+        diffuse = material_detected.diffuse * intensity * material_detected.albedo[0]
+        specular = color(255,255,255) * specular_intensity * material_detected.albedo[1]
+
+        return diffuse + specular
 
     def render(self):
-        fov = pi/2
+        fov = int(pi/2)
+
         for y in range(self.height):
             for x in range(self.width):
                 i = (2*(x + 0.5)/self.width - 1)* self.width/self.height *tan(fov/2)
-                j = -(2*(y + 0.5)/self.height - 1) * tan(fov/2)
+                j = (2*(y + 0.5)/self.height - 1) * tan(fov/2)
 
                 direction = norm(V3(i, j, -1))
                 self.pixels[y][x] = self.cast_ray(V3(0,0,0), direction)
