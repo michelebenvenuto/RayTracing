@@ -109,6 +109,32 @@ def reflect(I, N):
   n = mul(N, 2 * dot(Lm, N))
   return norm(sub(Lm, n))
 
+def refract(I, N, refractive_index):
+    etai = 1
+    etat = refractive_index
+
+    cosi = -dot(I, N)
+
+    if cosi < 0 :
+        cosi = -cosi
+        etai , etat = etat, etai
+        N = mul(N, -1)
+    
+    eta = etai/etat
+
+    k = 1- eta** 2 * (1 - cosi ** 2)
+
+    if k <0:
+        return V3(1,0,0)
+    cost = k**(1/2)
+
+    return norm(
+        sum(
+            mul(I, eta),
+            mul(N, (eta * cosi - cost))
+        )
+    )
+
 def sum(v0, v1):
     """
         Input: 2 size 3 vectors

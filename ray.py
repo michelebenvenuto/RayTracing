@@ -6,6 +6,8 @@ from light import Light
 White = color(255,255,255)
 Black = color(0,0,0)
 
+MAX_RECURSION_DEPTH = 3
+
 class RayTracer(object):
     def __init__(self, width, height, fileName = 'test.bmp', clearColor = Black):
         self.width = width
@@ -101,12 +103,14 @@ class RayTracer(object):
         return material, intersect
 
 
-    def cast_ray(self, origin, direction):
+    def cast_ray(self, origin, direction, recursion = 0):
         material_detected, impact = self.collisionDetected(origin,direction)
         
-        #nothing got hit 
-        if material_detected is None:
+
+        #nothing got hit on any iteration 
+        if material_detected is None or recursion>= MAX_RECURSION_DEPTH :
             return self.backgroundColor
+        
         #light stuff
 
         light_direction = norm(sub(self.light.position, impact.point))
@@ -114,6 +118,7 @@ class RayTracer(object):
 
         #shadow stuff
         offset_normal = mul(impact.normal, 1.1)
+
         shadow_origin = sub(impact.point, offset_normal) if dot(light_direction, impact.normal) < 0 else sum(impact.point, offset_normal)
         shadow_material, shadow_intersect = self.collisionDetected(shadow_origin, light_direction)
         shadow_intensity = 0
@@ -128,10 +133,30 @@ class RayTracer(object):
             max(0, -dot(reflection,direction))**material_detected.specular
         )
 
+        #reflexion stuff
+        if material_detected.albedo[2] > 0:
+            reflect_dir = reflect(direction, impact.normal)
+            reflect_orig = sub(impact.point, offset_normal) if dot(reflect_dir, impact.normal)< 0 else sum(impact.point, offset_normal)
+            reflected_color = self.cast_ray(reflect_orig, reflect_dir, recursion + 1)
+        else:
+            reflected_color = Black
+
+        # refraction stuff
+        if material_detected.albedo[3] > 0:
+            refract_dir = refract(direction, impact.normal, material_detected.refractive_index)
+            refract_orig = sub(impact.point, offset_normal) if dot(refract_dir, impact.normal)< 0 else sum(impact.poin, offset_normal)
+            refract_color = self.cast_ray(refract_orig, refract_dir, recursion + 1)
+        else:
+            refract_color = Black
+
+
+        #Finall steps
         diffuse = material_detected.diffuse * intensity * material_detected.albedo[0]
         specular = color(255,255,255) * specular_intensity * material_detected.albedo[1]
+        reflected = reflected_color * material_detected.albedo[2]
+        refraction = refract_color * material_detected.albedo[3]
 
-        return diffuse + specular
+        return diffuse + specular + reflected + refraction
 
     def render(self):
         fov = int(pi/2)
