@@ -5,21 +5,22 @@ from plane import Plane
 from usefullFunctions import sum
 
 class Cube(object):
-    def __init__(self, center, material):
+    def __init__(self, center, material, texture =None):
         self.center = center
         self.material = material
+        self.texture = texture
         self.cubeMins = V3(self.center.x - 0.5, self.center.y - 0.5, self.center.z - 0.5)
         self.cubeMax = V3(self.center.x + 0.5, self.center.y + 0.5, self.center.z + 0.5)
         self.planes = []
 
-        self.planes.append( Plane(sum(center, V3(0.5,0,0) ) , V3(1,0,0), material) )
-        self.planes.append( Plane(sum(center, V3(-0.5,0,0)) , V3(-1,0,0), material))
+        self.planes.append( Plane(sum(center, V3(0.5,0,0) ) , V3(1,0,0), material, texture) )
+        self.planes.append( Plane(sum(center, V3(-0.5,0,0)) , V3(-1,0,0), material, texture))
 
-        self.planes.append( Plane(sum(center, V3(0,0.5,0)), V3(0,1,0),material))
-        self.planes.append( Plane(sum(center, V3(0,-0.5,0)), V3(0,-1,0),material))
+        self.planes.append( Plane(sum(center, V3(0,0.5,0)), V3(0,1,0),material, texture))
+        self.planes.append( Plane(sum(center, V3(0,-0.5,0)), V3(0,-1,0),material, texture))
 
-        self.planes.append( Plane(sum(center, V3(0,0,0.5)), V3(0,0,1), material))
-        self.planes.append( Plane(sum(center, V3(0,0,-0.5)), V3(0,0,-1), material))
+        self.planes.append( Plane(sum(center, V3(0,0,0.5)), V3(0,0,1), material, texture))
+        self.planes.append( Plane(sum(center, V3(0,0,-0.5)), V3(0,0,-1), material, texture))
 
     def collisionDetected(self, origin, direction):
         
@@ -39,55 +40,17 @@ class Cube(object):
         if intersect is None:
             return None
         
-        return Intersect(
-            distance= intersect.distance,
-            point= intersect.point,
-            normal= intersect.normal
-        )
+        elif self.texture is None:
+            return Intersect(
+                distance= intersect.distance,
+                point= intersect.point,
+                normal= intersect.normal
+            )
 
-        # tx1 = (self.cubeMins.x - origin.x)/direction.x
-        # tx2 = (self.cubeMax.x - origin.x)/direction.x
-
-        # txExit = max(tx1, tx2)
-        # txEnter = min(tx1, tx2)
-
-        # ty1 = (self.cubeMins.y - origin.y)/direction.y
-        # ty2 = (self.cubeMax.y - origin.y)/direction.y
-        
-        # tyExit = max(ty1, ty2)
-        # tyEnter = min(ty1, ty2)
-
-        # tz1 = (self.cubeMins.z - origin.z)/direction.z
-        # tz2 = (self.cubeMax.z - origin.z)/direction.z
-        
-        # tzExit = max(tz1, tz2)
-        # tzEnter = min(tz1, tz2)
-
-        # tEnter = max(txEnter, tyEnter, tzEnter)
-        # tExit = min(txExit, tyExit, tzExit)
-
-        # if(tExit < tEnter):
-        #     return None
-        # else:
-        #     point = V3(txExit, tyExit, tzExit)
-        #     distance = ((point.x - origin.x)**2 +(point.y - origin.y)**2 +(point.z - origin.z)**2)**0.5
-        #     if(tzEnter == tzEnter):
-        #         return Intersect(
-        #             distance= distance,
-        #             point = point,
-        #             normal= V3(0,0,1)
-        #         )
-            
-        #     if(tyEnter == tEnter):
-        #         return Intersect(
-        #             distance= distance,
-        #             point = point,
-        #             normal= V3(0,1,0)
-        #         )
-
-        #     if(txEnter == tEnter):
-        #         return Intersect(
-        #             distance= distance,
-        #             point = point,
-        #             normal= V3(1,0,0)
-        #         )
+        else:
+            return Intersect(
+                distance= intersect.distance,
+                point= intersect.point,
+                normal= intersect.normal,
+                texture_color= intersect.texture_color
+            )

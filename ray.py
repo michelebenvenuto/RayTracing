@@ -1,4 +1,4 @@
-from usefullFunctions import *
+from usefullFunctions import V3, color, char, dword, word, norm, sub, length, mul, reflect, refract, dot, sum
 from math import sin, cos, tan, pi
 from sphere import Sphere
 from light import Light
@@ -106,17 +106,12 @@ class RayTracer(object):
     def cast_ray(self, origin, direction, recursion = 0):
         material_detected, impact = self.collisionDetected(origin,direction)
         
-
-        #nothing got hit on any iteration 
         if material_detected is None or recursion>= MAX_RECURSION_DEPTH :
             return self.backgroundColor
-        
-        #light stuff
 
         light_direction = norm(sub(self.light.position, impact.point))
         light_distance = length(sub(self.light.position, impact.point))
 
-        #shadow stuff
         offset_normal = mul(impact.normal, 1.1)
 
         shadow_origin = sub(impact.point, offset_normal) if dot(light_direction, impact.normal) < 0 else sum(impact.point, offset_normal)
@@ -133,7 +128,6 @@ class RayTracer(object):
             max(0, -dot(reflection,direction))**material_detected.specular
         )
 
-        #reflexion stuff
         if material_detected.albedo[2] > 0:
             reflect_dir = reflect(direction, impact.normal)
             reflect_orig = sub(impact.point, offset_normal) if dot(reflect_dir, impact.normal)< 0 else sum(impact.point, offset_normal)
@@ -141,17 +135,18 @@ class RayTracer(object):
         else:
             reflected_color = Black
 
-        # refraction stuff
         if material_detected.albedo[3] > 0:
             refract_dir = refract(direction, impact.normal, material_detected.refractive_index)
-            refract_orig = sub(impact.point, offset_normal) if dot(refract_dir, impact.normal)< 0 else sum(impact.poin, offset_normal)
+            refract_orig = sub(impact.point, offset_normal) if dot(refract_dir, impact.normal)< 0 else sum(impact.point, offset_normal)
             refract_color = self.cast_ray(refract_orig, refract_dir, recursion + 1)
         else:
             refract_color = Black
 
-
-        #Finall steps
-        diffuse = material_detected.diffuse * intensity * material_detected.albedo[0]
+        if impact.texture_color is not None:
+            diffuse = impact.texture_color * intensity * material_detected.albedo[0]
+        else:
+            diffuse = material_detected.diffuse * intensity * material_detected.albedo[0]
+    
         specular = color(255,255,255) * specular_intensity * material_detected.albedo[1]
         reflected = reflected_color * material_detected.albedo[2]
         refraction = refract_color * material_detected.albedo[3]
@@ -160,16 +155,12 @@ class RayTracer(object):
 
     def render(self):
         fov = int(pi/2)
-
         for y in range(self.height):
             for x in range(self.width):
-                i = (2*(x + 0.5)/self.width - 1)* self.width/self.height *tan(fov/2)
-                j = (2*(y + 0.5)/self.height - 1) * tan(fov/2)
-
+                i =  (2*(x + 0.5)/self.width - 1) * tan(fov/2) * self.width/self.height
+                j =  (2*(y + 0.5)/self.height - 1) * tan(fov/2)
                 direction = norm(V3(i, j, -1))
                 self.pixels[y][x] = self.cast_ray(V3(0,0,0), direction)
-
-#This class will be helpfull if more viewports are required in the future
 class Viewport(object):
     def __init__(self, x, y, height, width):
         self.x = x
